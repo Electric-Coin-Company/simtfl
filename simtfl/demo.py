@@ -6,7 +6,7 @@ from simpy import Environment
 
 from .message import PayloadMessage
 from .network import Network
-from .node import PassiveNode
+from .node import PassiveNode, SequentialNode
 
 
 class Ping(PayloadMessage):
@@ -29,16 +29,18 @@ class PingNode(PassiveNode):
     """
     def run(self):
         """
-        (process) Sends a Ping message to every node.
+        (process) Sends two Ping messages to every node.
         """
         for i in range(self.network.num_nodes()):
             yield from self.send(i, Ping(i))
-            yield self.env.timeout(3)
+            yield self.env.timeout(1)
+            yield from self.send(i, Ping(i))
+            yield self.env.timeout(2)
 
 
-class PongNode(PassiveNode):
+class PongNode(SequentialNode):
     """
-    A node that responds to pings.
+    A node that responds to pings sequentially.
     """
     def handle(self, sender, message):
         """
