@@ -19,9 +19,9 @@ Note the caveats: *experimental*, *simulator*, *research*, *potential*.
 
        poetry install
 
-3. Run the script:
+3. Run the demo (currently just an example of message passing):
 
-       poetry run simtfl
+       poetry run demo
 
 ## Programming patterns
 

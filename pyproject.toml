@@ -11,7 +11,7 @@ python = "^3.11"
 simpy = "^4"
 
 [tool.poetry.scripts]
-simtfl = "simtfl.runner:run"
+demo = "simtfl.demo:run"
 
 [build-system]
 requires = ["poetry-core"]

@@ -1,4 +1,3 @@
-from .message import Ping, Pong
 from .util import skip
 
 
@@ -45,31 +44,3 @@ class PassiveNode:
         (process) Runs by doing nothing.
         """
         return skip()
-
-
-class PingNode(PassiveNode):
-    """
-    A node that sends pings.
-    """
-    def run(self):
-        """
-        (process) Sends a Ping message to every node.
-        """
-        for i in range(self.network.num_nodes()):
-            yield from self.send(i, Ping(i))
-            yield self.env.timeout(3)
-
-
-class PongNode(PassiveNode):
-    """
-    A node that responds to pings.
-    """
-    def handle(self, sender, message):
-        """
-        (process) Handles a Ping message by sending back a Pong message with the same payload.
-        """
-        if isinstance(message, Ping):
-            yield self.env.timeout(5)
-            yield from self.send(sender, Pong(message.payload))
-        else:
-            yield from super().handle(sender, message)
