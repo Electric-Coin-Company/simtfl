@@ -1,0 +1,22 @@
+name: flake8
+
+on: pull_request
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install gnome-keyring
+        run: sudo apt-get install gnome-keyring
+
+      - name: Install poetry
+        run: pip install --user poetry
+
+      - name: Install dependencies
+        run: poetry install --no-root
+
+      - name: Run flake8
+        run: poetry run flake8

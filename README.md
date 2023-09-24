@@ -44,6 +44,10 @@ statements, `return f()` can be used as an optimization.)
 A "(process)" function that does nothing should `return skip()`, using
 `simtfl.util.skip`.
 
+## Contributing
+
+Please check `poetry run flake8` before submitting a PR.
+
 ## License
 
 This software is provided under the terms of the [MIT License](LICENSE).
