@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "simtfl"
+version = "0.1.0"
+description = "Experimental simulator for Trailing Finality Layer"
+authors = ["Daira Emma Hopwood <daira@jacaranda.org>", "Nate Wilcox <nathan+dev@electriccoin.co>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+simpy = "^4"
+
+[tool.poetry.scripts]
+simtfl = "simtfl.runner:run"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
