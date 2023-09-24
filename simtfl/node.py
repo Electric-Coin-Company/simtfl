@@ -1,4 +1,5 @@
 from .util import skip
+from collections import deque
 
 
 class PassiveNode:
@@ -44,3 +45,45 @@ class PassiveNode:
         (process) Runs by doing nothing.
         """
         return skip()
+
+
+class SequentialNode(PassiveNode):
+    """
+    A node that processes messages sequentially.
+    """
+    def __init__(self, ident, env, network):
+        """
+        Constructs a SequentialNode with the given simpy Environment and network.
+        """
+        super().__init__(ident, env, network)
+        self.mailbox = deque()
+        self.wakeup = env.event()
+
+    def receive(self, sender, message):
+        """
+        (process) Add incoming messages to the mailbox.
+        """
+        self.mailbox.append((sender, message))
+        try:
+            self.wakeup.succeed()
+        except RuntimeError:
+            pass
+        return skip()
+
+    def run(self):
+        """
+        (process) Repeatedly handle incoming messages.
+        If a subclass needs to perform tasks in parallel with message handling,
+        it should create a separate process and then delegate to this superclass
+        implementation.
+        """
+        while True:
+            while len(self.mailbox) > 0:
+                (sender, message) = self.mailbox.popleft()
+                print(f"T{self.env.now:5d}: handling  {sender:2d} -> {self.ident:2d}: {message}")
+                yield from self.handle(sender, message)
+
+            # This naive implementation is fine because we have no actual
+            # concurrency.
+            self.wakeup = self.env.event()
+            yield self.wakeup

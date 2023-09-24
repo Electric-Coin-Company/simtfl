@@ -61,8 +61,9 @@ class Network:
         """
         (process) Conveys a message to the node with ident `target`, from the node
         with ident `sender`, after waiting for the given transmission delay.
-        This normally should not be called directly because it will only complete
-        once the message has been handled by the target node.
+        This normally should not be called directly because it *may* only complete
+        after the message has been handled by the target node. The caller should
+        not depend on when it completes.
         """
         yield self.env.timeout(delay)
         print(f"T{self.env.now:5d}: receiving {sender:2d} -> {target:2d} delay {delay:2d}: {message}")
