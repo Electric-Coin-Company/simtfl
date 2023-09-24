@@ -1,5 +1,11 @@
 class Message:
+    """
+    A message with an arbitrary payload.
+    """
     def __init__(self, payload):
+        """
+        Constructs a `Message` with the given payload.
+        """
         self.payload = payload
 
     def __str__(self):
