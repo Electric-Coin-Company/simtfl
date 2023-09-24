@@ -7,8 +7,7 @@ class Network:
     """
     def __init__(self, env, nodes=None, delay=1):
         """
-        Constructs a Network with the given `simpy.Environment`, and optionally
-        a set of initial nodes and a message delay.
+        Constructs a Network with the given `simpy.Environment`, and optionally a set of initial nodes and a message delay.
         """
         self.env = env
         self.nodes = nodes or []
