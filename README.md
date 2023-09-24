@@ -19,9 +19,9 @@ Note the caveats: *experimental*, *simulator*, *research*, *potential*.
 
        poetry install
 
-3. Run the script:
+3. Run the demo (currently just an example of message passing):
 
-       poetry run simtfl
+       poetry run demo
 
 ## Programming patterns
 
@@ -43,6 +43,10 @@ statements, `return f()` can be used as an optimization.)
 
 A "(process)" function that does nothing should `return skip()`, using
 `simtfl.util.skip`.
+
+## Contributing
+
+Please check `poetry run flake8` before submitting a PR.
 
 ## License
 
