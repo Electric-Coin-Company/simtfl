@@ -1,13 +1,18 @@
-import simpy
+from simpy import Environment
 
-def clock(env, name, tick):
-    while True:
-        print(name, env.now)
-        yield env.timeout(tick)
+from .network import Network
+from .node import PingNode, PongNode
+
 
 def run():
-    print("This is just the minimal example for simpy.")
-    env = simpy.Environment()
-    env.process(clock(env, 'fast', 0.5))
-    env.process(clock(env, 'slow', 1))
-    env.run(until=2)
+    env = Environment()
+    network = Network(env, delay=4)
+    for i in range(10):
+        network.add_node(PongNode(i, env, network))
+
+    network.add_node(PingNode(10, env, network))
+
+    for i in range(network.num_nodes()):
+        env.process(network.start_node(i))
+
+    env.run()
