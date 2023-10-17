@@ -56,16 +56,16 @@ class SequentialNode(PassiveNode):
         Constructs a SequentialNode with the given simpy Environment and network.
         """
         super().__init__(ident, env, network)
-        self.mailbox = deque()
-        self.wakeup = env.event()
+        self._mailbox = deque()
+        self._wakeup = env.event()
 
     def receive(self, sender, message):
         """
         (process) Add incoming messages to the mailbox.
         """
-        self.mailbox.append((sender, message))
+        self._mailbox.append((sender, message))
         try:
-            self.wakeup.succeed()
+            self._wakeup.succeed()
         except RuntimeError:
             pass
         return skip()
@@ -78,12 +78,12 @@ class SequentialNode(PassiveNode):
         implementation.
         """
         while True:
-            while len(self.mailbox) > 0:
-                (sender, message) = self.mailbox.popleft()
+            while len(self._mailbox) > 0:
+                (sender, message) = self._mailbox.popleft()
                 print(f"T{self.env.now:5d}: handling  {sender:2d} -> {self.ident:2d}: {message}")
                 yield from self.handle(sender, message)
 
             # This naive implementation is fine because we have no actual
             # concurrency.
-            self.wakeup = self.env.event()
-            yield self.wakeup
+            self._wakeup = self.env.event()
+            yield self._wakeup
