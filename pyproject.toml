@@ -16,6 +16,7 @@ pdoc = "^14"
 
 [tool.poetry.scripts]
 demo = "simtfl.demo:run"
+bc-demo = "simtfl.bc.demo:run"
 
 [build-system]
 requires = ["poetry-core"]

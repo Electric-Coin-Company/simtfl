@@ -9,3 +9,8 @@ def skip():
     """
     # Make this a generator.
     yield from []
+
+
+class Unique:
+    """Represents a unique value."""
+    pass
