@@ -31,7 +31,14 @@ Design documentation is under the `doc/` directory:
 
 ## Contributing
 
-Please check `poetry run flake8` before submitting a PR.
+Please use `./check.sh` before submitting a PR. This currently runs `flake8`
+and the unit tests locally.
+
+You can use `./check.sh -k <substring>` to run `flake8` and then only tests
+with names matching the given substring. This will not suppress output to
+stdout or stderr (but `./check.sh -bk <substring>` will).
+
+To see other options for running unit tests, use `poetry run python -m unittest -h`.
 
 ## License
 
