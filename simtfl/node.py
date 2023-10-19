@@ -101,3 +101,62 @@ class SequentialNode(PassiveNode):
             self._wakeup = self.env.event()
             yield self._wakeup
 
+
+__all__ = ['PassiveNode', 'SequentialNode']
+
+from simpy import Environment
+import unittest
+
+from .message import PayloadMessage
+from .network import Network
+
+
+class PassiveReceiverTestNode(PassiveNode):
+    def __init__(self):
+        super().__init__()
+        self.received = deque()
+
+    def handle(self, sender, message):
+        self.received.append((sender, message, self.env.now))
+        yield self.env.timeout(3)
+
+
+class SequentialReceiverTestNode(SequentialNode):
+    def __init__(self):
+        super().__init__()
+        self.received = deque()
+
+    def handle(self, sender, message):
+        self.received.append((sender, message, self.env.now))
+        yield self.env.timeout(3)
+
+
+class SenderTestNode(PassiveNode):
+    def run(self):
+        for i in range(3):
+            yield from self.send(0, PayloadMessage(i))
+            yield self.env.timeout(1)
+
+
+class TestFramework(unittest.TestCase):
+    def _test_node(self, receiver_node, expected):
+        network = Network(Environment())
+        network.add_node(receiver_node)
+        network.add_node(SenderTestNode())
+        network.run_all()
+
+        self.assertEqual(list(network.node(0).received), expected)
+
+    def test_passive_node(self):
+        self._test_node(PassiveReceiverTestNode(), [
+            (1, PayloadMessage(0), 1),
+            (1, PayloadMessage(1), 2),
+            (1, PayloadMessage(2), 3),
+        ])
+
+    def test_sequential_node(self):
+        self._test_node(SequentialReceiverTestNode(), [
+            (1, PayloadMessage(0), 1),
+            (1, PayloadMessage(1), 4),
+            (1, PayloadMessage(2), 7),
+        ])

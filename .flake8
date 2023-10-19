@@ -1,4 +1,10 @@
 [flake8]
 exclude = .git, __pycache__
-ignore = E302
+
+# Justifications for each ignored error or warning:
+# * E302: always requiring two blank lines rather than one between top-level items is too annoying and nitpicky.
+# * E402: we want imports for tests to go between the main code and the tests.
+# * W503, W504: these give false positives for the style of avoiding \ at the end of each line by using parens.
+ignore = E302, E402, W503, W504
+
 max-line-length = 120
