@@ -1,3 +1,7 @@
+"""
+Framework for message passing in a network of nodes.
+"""
+
 from .util import skip
 
 

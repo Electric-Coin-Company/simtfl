@@ -1,3 +1,7 @@
+"""
+Base classes for messages.
+"""
+
 from dataclasses import dataclass
 from typing import Any
 
@@ -8,3 +12,4 @@ class PayloadMessage:
     A message with an arbitrary payload.
     """
     payload: Any
+    """The payload."""

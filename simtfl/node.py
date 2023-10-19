@@ -1,3 +1,7 @@
+"""
+Base classes for node implementations.
+"""
+
 from collections import deque
 
 from .util import skip
@@ -5,13 +9,21 @@ from .util import skip
 
 class PassiveNode:
     """
-    A node that sends no messages and does nothing with received messages.
-    This class is intended to be subclassed.
+    A node that processes messages concurrently. By default it sends no
+    messages and does nothing with received messages. This class is
+    intended to be subclassed.
+
+    Inherit from this class directly if all messages are to be processed
+    concurrently without blocking. If messages are to be processed
+    sequentially, it may be easier to inherit from `SequentialNode`.
+
+    Note that the simulation is deterministic regardless of which option
+    is selected.
     """
     def initialize(self, ident, env, network):
         """
-        Initializes a PassiveNode with the given ident, simpy Environment,
-        and network. Nodes are initialized when they are added to a network.
+        Initializes a `PassiveNode` with the given ident, `simpy.Environment`,
+        and `Network`. Nodes are initialized when they are added to a `Network`.
         """
         self.ident = ident
         self.env = env
@@ -52,11 +64,13 @@ class PassiveNode:
 
 class SequentialNode(PassiveNode):
     """
-    A node that processes messages sequentially.
+    A node that processes messages sequentially. By default it sends no
+    messages and does nothing with received messages. This class is
+    intended to be subclassed.
     """
     def initialize(self, ident, env, network):
         """
-        Initializes a SequentialNode with the given simpy Environment and network.
+        Initializes a `SequentialNode` with the given `simpy.Environment` and `Network`.
         """
         super().initialize(ident, env, network)
         self._mailbox = deque()
