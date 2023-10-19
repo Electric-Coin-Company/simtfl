@@ -29,6 +29,9 @@ Design documentation is under the `doc/` directory:
 
 * [Programming patterns for use of simpy](doc/patterns.md).
 
+You can also generate API documentation by running `./gendoc.sh`.
+The starting point for the generated documentation is <apidoc/simtfl.html>.
+
 ## Contributing
 
 Please use `./check.sh` before submitting a PR. This currently runs `flake8`
