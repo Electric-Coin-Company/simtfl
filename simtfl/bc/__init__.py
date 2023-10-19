@@ -1,3 +1,7 @@
+"""
+Abstractions for best-chain transactions, contexts, and blocks.
+"""
+
 from collections import deque
 from dataclasses import dataclass
 
@@ -5,19 +9,20 @@ from ..util import Unique
 
 
 class BCTransaction:
+    """A transaction for a best-chain protocol."""
+
     @dataclass(frozen=True)
     class _TXO:
         tx: 'BCTransaction'
         index: int
         value: int
 
-    """A transaction for a best-chain protocol."""
     def __init__(self, inputs, output_values, fee, issuance=0):
         """
         Constructs a `BCTransaction` with the given inputs, output values, fee,
         and (if it is a coinbase transaction) issuance.
         The elements of `inputs` are TXO objects obtained from the `output` method
-        of another BCTransaction.
+        of another `BCTransaction`.
         For a coinbase transaction, pass `inputs=[]`, and `fee` as a negative value
         of magnitude equal to the total amount of fees paid by other transactions
         in the block.
@@ -46,6 +51,11 @@ class BCTransaction:
 
 
 class BCContext:
+    """
+    A context that allows checking transactions for contextual validity in a
+    best-chain protocol.
+    """
+
     def __init__(self):
         """Constructs an empty `BCContext`."""
         self.transactions = deque()
@@ -73,19 +83,26 @@ class BCContext:
 
 
 class BCBlock:
+    """A block in a best-chain protocol."""
+
     def __init__(self, parent, added_score, transactions, allow_invalid=False):
         """
-        Constructs a `BCBlock` with the given parent block, score relative to the parent, and transactions.
+        Constructs a `BCBlock` with the given parent block, score relative to the parent,
+        and transactions.
         If `allow_invalid` is set, the block need not be valid.
         Use `parent=None` to construct the genesis block.
         """
+        assert all((isinstance(tx, BCTransaction) for tx in transactions))
         self.parent = parent
         self.score = (0 if parent is None else self.parent.score) + added_score
         self.transactions = transactions
         self.hash = Unique()
-        assert allow_invalid or self.is_valid()
+        assert allow_invalid or self.is_noncontextually_valid()
 
-    def is_valid(self):
+    def is_noncontextually_valid(self):
+        """
+        Are non-contextual consensus rules satisfied for this block?
+        """
         return (
             len(self.transactions) > 0 and
             self.transactions[0].is_coinbase() and
@@ -96,9 +113,16 @@ class BCBlock:
 
 @dataclass
 class BCProtocol:
+    """A best-chain protocol."""
+
     Transaction: type[object] = BCTransaction
+    """The type of transactions for this protocol."""
+
     Context: type[object] = BCContext
+    """The type of contexts for this protocol."""
+
     Block: type[object] = BCBlock
+    """The type of blocks for this protocol."""
 
 
 __all__ = ['BCTransaction', 'BCContext', 'BCBlock', 'BCProtocol']
