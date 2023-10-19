@@ -1,4 +1,4 @@
-name: flake8
+name: tests
 
 on: pull_request
 
@@ -19,5 +19,6 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-root
 
-      - name: Run flake8
-        run: poetry run flake8
+      - name: Run tests
+        # -p '[a-z]*.py' avoids running tests from __init__.py files twice.
+        run: poetry run python -m unittest discover -s simtfl -t . -p '[a-z]*.py' --verbose --buffer
