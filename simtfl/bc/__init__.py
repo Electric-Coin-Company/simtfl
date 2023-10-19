@@ -16,6 +16,8 @@ class BCTransaction:
         """
         Constructs a `BCTransaction` with the given inputs, output values, fee,
         and (if it is a coinbase transaction) issuance.
+        The elements of `inputs` are TXO objects obtained from the `output` method
+        of another BCTransaction.
         For a coinbase transaction, pass `inputs=[]`, and `fee` as a negative value
         of magnitude equal to the total amount of fees paid by other transactions
         in the block.
@@ -23,6 +25,7 @@ class BCTransaction:
         assert issuance >= 0
         assert fee >= 0 or len(inputs) == 0
         assert issuance == 0 or len(inputs) == 0
+        assert all((isinstance(txin, self._TXO) for txin in inputs))
         assert sum((txin.value for txin in inputs)) + issuance == sum(output_values) + fee
         self.inputs = inputs
         self.outputs = [self._TXO(self, i, v) for (i, v) in enumerate(output_values)]
