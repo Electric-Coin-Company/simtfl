@@ -30,15 +30,33 @@ class Network:
         """
         Adds a node with the next available ident.
         """
+        ident = self.num_nodes()
         self.nodes.append(node)
+        node.initialize(ident, self.env, self)
 
     def start_node(self, ident):
         """
         (process) Start the node with the given ident.
         """
         node = self.node(ident)
-        print(f"T{self.env.now:5d}: starting  {node}")
+        print(f"T{self.env.now:5d}: starting  {ident:2d}: {node}")
         return node.run()
+
+    def start_processes(self):
+        """
+        Start a process for each node.
+        """
+        print()
+        for i in range(self.num_nodes()):
+            self.env.process(self.start_node(i))
+
+    def run_all(self, *args, **kwargs):
+        """
+        Convenience method to start a process for each node, then start
+        the simulation. Takes the same arguments as `simpy.Environment.run`.
+        """
+        self.start_processes()
+        self.env.run(*args, **kwargs)
 
     def send(self, sender, target, message, delay=None):
         """

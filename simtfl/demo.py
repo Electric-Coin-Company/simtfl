@@ -58,14 +58,9 @@ def run():
     """
     Runs the demo.
     """
-    env = Environment()
-    network = Network(env, delay=4)
+    network = Network(Environment(), delay=4)
     for i in range(10):
-        network.add_node(PongNode(i, env, network))
+        network.add_node(PongNode())
 
-    network.add_node(PingNode(10, env, network))
-
-    for i in range(network.num_nodes()):
-        env.process(network.start_node(i))
-
-    env.run()
+    network.add_node(PingNode())
+    network.run_all()

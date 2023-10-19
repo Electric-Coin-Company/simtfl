@@ -2,6 +2,7 @@
 Utilities.
 """
 
+
 def skip():
     """
     (process) Does nothing.

@@ -1,5 +1,6 @@
-from .util import skip
 from collections import deque
+
+from .util import skip
 
 
 class PassiveNode:
@@ -7,36 +8,38 @@ class PassiveNode:
     A node that sends no messages and does nothing with received messages.
     This class is intended to be subclassed.
     """
-    def __init__(self, ident, env, network):
+    def initialize(self, ident, env, network):
         """
-        Constructs a PassiveNode with the given simpy Environment and network.
+        Initializes a PassiveNode with the given ident, simpy Environment,
+        and network. Nodes are initialized when they are added to a network.
         """
         self.ident = ident
         self.env = env
         self.network = network
 
     def __str__(self):
-        return f"{self.ident:2d}: {self.__class__.__name__}"
+        return f"{self.__class__.__name__}"
 
     def send(self, target, message):
         """
         (process) This method can be overridden to intercept messages being sent
-        by this node. It should typically call `self.network.send`.
+        by this node. The implementation in this class calls `self.network.send`.
         """
         return self.network.send(self.ident, target, message)
 
     def receive(self, sender, message):
         """
         (process) This method can be overridden to intercept messages being received
-        by this node. It should typically call `self.handle`.
+        by this node. The implementation in this class calls `self.handle`.
         """
         return self.handle(sender, message)
 
-    def handle(self, message, sender):
+    def handle(self, sender, message):
         """
         (process) Handles a message by doing nothing. Note that the handling of
         each message, and the `run` method, are in separate simpy processes. That
-        is, yielding here will not block other incoming messages.
+        is, yielding here will not block other incoming messages for a direct
+        subclass of `PassiveNode`.
         """
         return skip()
 
@@ -51,11 +54,11 @@ class SequentialNode(PassiveNode):
     """
     A node that processes messages sequentially.
     """
-    def __init__(self, ident, env, network):
+    def initialize(self, ident, env, network):
         """
-        Constructs a SequentialNode with the given simpy Environment and network.
+        Initializes a SequentialNode with the given simpy Environment and network.
         """
-        super().__init__(ident, env, network)
+        super().initialize(ident, env, network)
         self._mailbox = deque()
         self._wakeup = env.event()
 
@@ -68,6 +71,16 @@ class SequentialNode(PassiveNode):
             self._wakeup.succeed()
         except RuntimeError:
             pass
+        return skip()
+
+    def handle(self, sender, message):
+        """
+        (process) Handles a message by doing nothing. Messages are handled
+        sequentially; that is, handling of the next message will be blocked
+        on this process.
+        """
+        # This is the same implementation as `PassiveNode`, but the documentation
+        # is different.
         return skip()
 
     def run(self):
@@ -87,3 +100,4 @@ class SequentialNode(PassiveNode):
             # concurrency.
             self._wakeup = self.env.event()
             yield self._wakeup
+
