@@ -29,8 +29,9 @@ Design documentation is under the `doc/` directory:
 
 * [Programming patterns for use of simpy](doc/patterns.md).
 
-You can also generate API documentation by running `./gendoc.sh`.
-The starting point for the generated documentation is <apidoc/simtfl.html>.
+You can also generate API documentation by running `./gendoc.sh`. This assumes
+that you have run `poetry install` as shown above. The starting point for the
+generated documentation is <apidoc/simtfl.html>.
 
 ## Contributing
 
