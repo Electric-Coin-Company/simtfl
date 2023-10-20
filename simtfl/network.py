@@ -38,28 +38,36 @@ class Network:
         self.nodes.append(node)
         node.initialize(ident, self.env, self)
 
+    def _start(self, node):
+        """
+        Starts a process for the given node (which is assumed to
+        have already been added to this `Network`).
+        """
+        print(f"T{self.env.now:5d}: starting  {node.ident:2d}: {node}")
+        self.env.process(node.run())
+
     def start_node(self, ident):
         """
-        (process) Start the node with the given ident.
+        Starts a process for the node with the given ident.
+        A given node should only be started once.
         """
-        node = self.node(ident)
-        print(f"T{self.env.now:5d}: starting  {ident:2d}: {node}")
-        return node.run()
+        self._start(self.nodes[ident])
 
-    def start_processes(self):
+    def start_all_nodes(self):
         """
-        Start a process for each node.
+        Starts a process for each node.
+        A given node should only be started once.
         """
         print()
-        for i in range(self.num_nodes()):
-            self.env.process(self.start_node(i))
+        for node in self.nodes:
+            self._start(node)
 
     def run_all(self, *args, **kwargs):
         """
         Convenience method to start a process for each node, then start
         the simulation. Takes the same arguments as `simpy.Environment.run`.
         """
-        self.start_processes()
+        self.start_all_nodes()
         self.env.run(*args, **kwargs)
 
     def send(self, sender, target, message, delay=None):
