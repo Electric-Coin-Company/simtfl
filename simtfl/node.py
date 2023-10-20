@@ -128,25 +128,32 @@ from .network import Network
 class PassiveReceiverTestNode(PassiveNode):
     def __init__(self):
         super().__init__()
-        self.received = deque()
+        self.handled = deque()
 
     def handle(self, sender, message):
-        self.received.append((sender, message, self.env.now))
+        # Record when each message is handled.
+        self.handled.append((sender, message, self.env.now))
+        # The handler takes 3 time units.
         yield self.env.timeout(3)
 
 
 class SequentialReceiverTestNode(SequentialNode):
     def __init__(self):
         super().__init__()
-        self.received = deque()
+        self.handled = deque()
 
     def handle(self, sender, message):
-        self.received.append((sender, message, self.env.now))
+        # Record when each message is handled.
+        self.handled.append((sender, message, self.env.now))
+        # The handler takes 3 time units.
         yield self.env.timeout(3)
 
 
 class SenderTestNode(PassiveNode):
     def run(self):
+        # We send messages at times 0, 1, 2. Since the network
+        # propagation delay is 1 (the default), they will be
+        # received at times 1, 2, 3.
         for i in range(3):
             yield from self.send(0, PayloadMessage(i))
             yield self.env.timeout(1)
@@ -159,9 +166,12 @@ class TestFramework(unittest.TestCase):
         network.add_node(SenderTestNode())
         network.run_all()
 
-        self.assertEqual(list(network.node(0).received), expected)
+        self.assertEqual(list(network.node(0).handled), expected)
 
     def test_passive_node(self):
+        # A PassiveNode subclass does not block on handling of
+        # previous messages, so it handles each message immediately
+        # when it is received.
         self._test_node(PassiveReceiverTestNode(), [
             (1, PayloadMessage(0), 1),
             (1, PayloadMessage(1), 2),
@@ -169,6 +179,10 @@ class TestFramework(unittest.TestCase):
         ])
 
     def test_sequential_node(self):
+        # A SequentialNode subclass *does* block on handling of
+        # previous messages. It handles the messages as soon as
+        # possible after they are received subject to that blocking,
+        # so they will be handled at intervals of 3 time units.
         self._test_node(SequentialReceiverTestNode(), [
             (1, PayloadMessage(0), 1),
             (1, PayloadMessage(1), 4),
