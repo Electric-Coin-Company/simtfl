@@ -1,3 +1,7 @@
+"""
+Framework for message passing in a network of nodes.
+"""
+
 from .util import skip
 
 
@@ -8,7 +12,7 @@ class Network:
     def __init__(self, env, nodes=None, delay=1):
         """
         Constructs a Network with the given `simpy.Environment`, and optionally
-        a set of initial nodes and a message delay.
+        a set of initial nodes and a message propagation delay.
         """
         self.env = env
         self.nodes = nodes or []
@@ -30,21 +34,47 @@ class Network:
         """
         Adds a node with the next available ident.
         """
+        ident = self.num_nodes()
         self.nodes.append(node)
+        node.initialize(ident, self.env, self)
+
+    def _start(self, node):
+        """
+        Starts a process for the given node (which is assumed to
+        have already been added to this `Network`).
+        """
+        print(f"T{self.env.now:5d}: starting  {node.ident:2d}: {node}")
+        self.env.process(node.run())
 
     def start_node(self, ident):
         """
-        (process) Start the node with the given ident.
+        Starts a process for the node with the given ident.
+        A given node should only be started once.
         """
-        node = self.node(ident)
-        print(f"T{self.env.now:5d}: starting  {node}")
-        return node.run()
+        self._start(self.nodes[ident])
+
+    def start_all_nodes(self):
+        """
+        Starts a process for each node.
+        A given node should only be started once.
+        """
+        print()
+        for node in self.nodes:
+            self._start(node)
+
+    def run_all(self, *args, **kwargs):
+        """
+        Convenience method to start a process for each node, then start
+        the simulation. Takes the same arguments as `simpy.Environment.run`.
+        """
+        self.start_all_nodes()
+        self.env.run(*args, **kwargs)
 
     def send(self, sender, target, message, delay=None):
         """
         (process) Sends a message to the node with ident `target`, from the node
-        with ident `sender`. The message delay is normally given by `self.delay`,
-        but can be overridden by the `delay` parameter.
+        with ident `sender`. The message propagation delay is normally given by
+        `self.delay`, but can be overridden by the `delay` parameter.
         """
         if delay is None:
             delay = self.delay
@@ -60,7 +90,7 @@ class Network:
     def convey(self, delay, sender, target, message):
         """
         (process) Conveys a message to the node with ident `target`, from the node
-        with ident `sender`, after waiting for the given transmission delay.
+        with ident `sender`, after waiting for the given message propagation delay.
         This normally should not be called directly because it *may* only complete
         after the message has been handled by the target node. The caller should
         not depend on when it completes.

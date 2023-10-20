@@ -12,6 +12,7 @@ simpy = "^4"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^6"
+pdoc = "^14"
 
 [tool.poetry.scripts]
 demo = "simtfl.demo:run"

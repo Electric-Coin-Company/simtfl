@@ -1,6 +1,9 @@
 *.swp
 *.save
 
+# API docs
+apidoc/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

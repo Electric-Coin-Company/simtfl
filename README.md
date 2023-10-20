@@ -23,30 +23,26 @@ Note the caveats: *experimental*, *simulator*, *research*, *potential*.
 
        poetry run demo
 
-## Programming patterns
+## Documentation
 
-The code makes use of the [simpy](https://simpy.readthedocs.io/en/latest/)
-discrete event simulation library. This means that functions representing
-processes are implemented as generators, so that the library can simulate
-timeouts and asynchronous communication (typically faster than real time).
+Design documentation is under the `doc/` directory:
 
-We use the convention of putting "(process)" in the doc comment of these
-functions. They either must use the `yield` construct, *or* return the
-result of calling another "(process)" function (not both).
+* [Programming patterns for use of simpy](doc/patterns.md).
 
-Objects that implement processes typically hold the `simpy.Environment` in
-an instance variable `self.env`.
-
-To wait for another process `f()` before continuing, use `yield from f()`.
-(If it is the last thing to do in a function with no other `yield`
-statements, `return f()` can be used as an optimization.)
-
-A "(process)" function that does nothing should `return skip()`, using
-`simtfl.util.skip`.
+You can also generate API documentation by running `./gendoc.sh`. This assumes
+that you have run `poetry install` as shown above. The starting point for the
+generated documentation is <apidoc/simtfl.html>.
 
 ## Contributing
 
-Please check `poetry run flake8` before submitting a PR.
+Please use `./check.sh` before submitting a PR. This currently runs `flake8`
+and the unit tests locally.
+
+You can use `./check.sh -k <substring>` to run `flake8` and then only tests
+with names matching the given substring. This will not suppress output to
+stdout or stderr (but `./check.sh -bk <substring>` will).
+
+To see other options for running unit tests, use `poetry run python -m unittest -h`.
 
 ## License
 
