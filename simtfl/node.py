@@ -151,7 +151,7 @@ class SequentialReceiverTestNode(SequentialNode):
 
 class SenderTestNode(PassiveNode):
     def run(self):
-        # We send messages at times 0, 1, 2. Since the network
+        # We send messages at times 0, 1, 2. Since the message
         # propagation delay is 1 (the default), they will be
         # received at times 1, 2, 3.
         for i in range(3):

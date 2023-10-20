@@ -12,7 +12,7 @@ class Network:
     def __init__(self, env, nodes=None, delay=1):
         """
         Constructs a Network with the given `simpy.Environment`, and optionally
-        a set of initial nodes and a message delay.
+        a set of initial nodes and a message propagation delay.
         """
         self.env = env
         self.nodes = nodes or []
@@ -73,8 +73,8 @@ class Network:
     def send(self, sender, target, message, delay=None):
         """
         (process) Sends a message to the node with ident `target`, from the node
-        with ident `sender`. The message delay is normally given by `self.delay`,
-        but can be overridden by the `delay` parameter.
+        with ident `sender`. The message propagation delay is normally given by
+        `self.delay`, but can be overridden by the `delay` parameter.
         """
         if delay is None:
             delay = self.delay
@@ -90,7 +90,7 @@ class Network:
     def convey(self, delay, sender, target, message):
         """
         (process) Conveys a message to the node with ident `target`, from the node
-        with ident `sender`, after waiting for the given transmission delay.
+        with ident `sender`, after waiting for the given message propagation delay.
         This normally should not be called directly because it *may* only complete
         after the message has been handled by the target node. The caller should
         not depend on when it completes.
