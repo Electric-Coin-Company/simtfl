@@ -32,12 +32,12 @@ class PassiveNode:
     def __str__(self):
         return f"{self.__class__.__name__}"
 
-    def send(self, target, message):
+    def send(self, target, message, delay=None):
         """
         (process) This method can be overridden to intercept messages being sent
         by this node. The implementation in this class calls `self.network.send`.
         """
-        return self.network.send(self.ident, target, message)
+        return self.network.send(self.ident, target, message, delay=delay)
 
     def receive(self, sender, message):
         """
@@ -158,6 +158,9 @@ class SenderTestNode(PassiveNode):
             yield from self.send(0, PayloadMessage(i))
             yield self.env.timeout(1)
 
+        # Test overriding the propagation delay. This message
+        # is sent at time 3 and received at time 11.
+        yield from self.send(0, PayloadMessage(3), delay=8)
 
 class TestFramework(unittest.TestCase):
     def _test_node(self, receiver_node, expected):
@@ -176,6 +179,7 @@ class TestFramework(unittest.TestCase):
             (1, PayloadMessage(0), 1),
             (1, PayloadMessage(1), 2),
             (1, PayloadMessage(2), 3),
+            (1, PayloadMessage(3), 11),
         ])
 
     def test_sequential_node(self):
@@ -187,4 +191,5 @@ class TestFramework(unittest.TestCase):
             (1, PayloadMessage(0), 1),
             (1, PayloadMessage(1), 4),
             (1, PayloadMessage(2), 7),
+            (1, PayloadMessage(3), 11),
         ])
