@@ -87,6 +87,25 @@ class Network:
         # TODO: make it take some time on the sending node.
         return skip()
 
+    def broadcast(self, sender, message, delay=None):
+        """
+        (process) Broadcasts a message to every other node. The message
+        propagation delay is normally given by `self.delay`, but can be
+        overridden by the `delay` parameter.
+        """
+        if delay is None:
+            delay = self.delay
+        print(f"T{self.env.now:5d}: broadcast {sender:2d} => *  delay {delay:2d}: {message}")
+
+        # Run `convey` in a new process for each node.
+        for target in range(self.num_nodes()):
+            if target != sender:
+                self.env.process(self.convey(delay, sender, target, message))
+
+        # Broadcasting is currently instantaneous.
+        # TODO: make it take some time on the sending node.
+        return skip()
+
     def convey(self, delay, sender, target, message):
         """
         (process) Conveys a message to the node with ident `target`, from the node

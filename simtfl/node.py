@@ -35,9 +35,18 @@ class PassiveNode:
     def send(self, target, message, delay=None):
         """
         (process) This method can be overridden to intercept messages being sent
-        by this node. The implementation in this class calls `self.network.send`.
+        by this node. The implementation in this class calls `self.network.send`
+        with this node as the sender.
         """
         return self.network.send(self.ident, target, message, delay=delay)
+
+    def broadcast(self, message, delay=None):
+        """
+        (process) This method can be overridden to intercept messages being broadcast
+        by this node. The implementation in this class calls `self.network.broadcast`
+        with this node as the sender.
+        """
+        return self.network.broadcast(self.ident, message, delay=delay)
 
     def receive(self, sender, message):
         """
@@ -159,8 +168,12 @@ class SenderTestNode(PassiveNode):
             yield self.env.timeout(1)
 
         # Test overriding the propagation delay. This message
-        # is sent at time 3 and received at time 11.
-        yield from self.send(0, PayloadMessage(3), delay=8)
+        # is sent at time 3 and received at time 14.
+        yield from self.send(0, PayloadMessage(3), delay=11)
+        yield self.env.timeout(1)
+
+        # This message is broadcast at time 4 and received at time 5.
+        yield from self.broadcast(PayloadMessage(4))
 
 
 class TestFramework(unittest.TestCase):
@@ -180,7 +193,8 @@ class TestFramework(unittest.TestCase):
             (1, PayloadMessage(0), 1),
             (1, PayloadMessage(1), 2),
             (1, PayloadMessage(2), 3),
-            (1, PayloadMessage(3), 11),
+            (1, PayloadMessage(4), 5),
+            (1, PayloadMessage(3), 14),
         ])
 
     def test_sequential_node(self):
@@ -192,5 +206,6 @@ class TestFramework(unittest.TestCase):
             (1, PayloadMessage(0), 1),
             (1, PayloadMessage(1), 4),
             (1, PayloadMessage(2), 7),
-            (1, PayloadMessage(3), 11),
+            (1, PayloadMessage(4), 10),
+            (1, PayloadMessage(3), 14),
         ])
