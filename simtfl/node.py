@@ -162,6 +162,7 @@ class SenderTestNode(PassiveNode):
         # is sent at time 3 and received at time 11.
         yield from self.send(0, PayloadMessage(3), delay=8)
 
+
 class TestFramework(unittest.TestCase):
     def _test_node(self, receiver_node, expected):
         network = Network(Environment())
