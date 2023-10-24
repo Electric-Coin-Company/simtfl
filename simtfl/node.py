@@ -32,6 +32,12 @@ class PassiveNode:
     def __str__(self):
         return f"{self.__class__.__name__}"
 
+    def log(self, event, detail):
+        """
+        Logs an event described by `event` and `detail` for this node.
+        """
+        self.network.log(self.ident, event, detail)
+
     def send(self, target, message, delay=None):
         """
         (process) This method can be overridden to intercept messages being sent
@@ -116,7 +122,7 @@ class SequentialNode(PassiveNode):
         while True:
             while len(self._mailbox) > 0:
                 (sender, message) = self._mailbox.popleft()
-                print(f"T{self.env.now:5d}: handling  {sender:2d} -> {self.ident:2d}: {message}")
+                self.log("handle", f"from {sender:2d}: {message}")
                 yield from self.handle(sender, message)
 
             # This naive implementation is fine because we have no actual
@@ -130,6 +136,7 @@ __all__ = ['PassiveNode', 'SequentialNode']
 from simpy import Environment
 import unittest
 
+from .logging import PrintLogger
 from .message import PayloadMessage
 from .network import Network
 
@@ -178,7 +185,7 @@ class SenderTestNode(PassiveNode):
 
 class TestFramework(unittest.TestCase):
     def _test_node(self, receiver_node, expected):
-        network = Network(Environment())
+        network = Network(Environment(), logger=PrintLogger())
         network.add_node(receiver_node)
         network.add_node(SenderTestNode())
         network.run_all()

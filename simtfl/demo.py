@@ -4,6 +4,7 @@ A simple demo of message passing.
 
 from simpy import Environment
 
+from .logging import PrintLogger
 from .message import PayloadMessage
 from .network import Network
 from .node import PassiveNode, SequentialNode
@@ -58,7 +59,7 @@ def run():
     """
     Runs the demo.
     """
-    network = Network(Environment(), delay=4)
+    network = Network(Environment(), delay=4, logger=PrintLogger())
     for i in range(10):
         network.add_node(PongNode())
 
