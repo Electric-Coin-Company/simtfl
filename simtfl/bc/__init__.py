@@ -18,7 +18,7 @@ actual privacy properties.
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum, auto
-from itertools import chain
+from itertools import chain, islice
 from sys import version_info
 
 from ..util import Unique
@@ -227,7 +227,7 @@ class BCBlock:
         """Assert that non-contextual consensus rules are satisfied for this block."""
         assert len(self.transactions) > 0
         assert self.transactions[0].is_coinbase()
-        assert not any((tx.is_coinbase() for tx in self.transactions[1:]))
+        assert not any((tx.is_coinbase() for tx in islice(self.transactions, 1, None)))
         assert sum((tx.fee for tx in self.transactions)) == 0
 
     def is_noncontextually_valid(self):
