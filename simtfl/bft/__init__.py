@@ -35,20 +35,41 @@ class PermissionedBFTBase:
         self.t = t
         self.parent = None
 
+    def last_final(self):
+        """
+        Returns the last final block in this block's ancestor chain.
+        For the genesis block, this is itself.
+        """
+        return self
+
 
 class PermissionedBFTBlock(PermissionedBFTBase):
     """
     A block for a BFT protocol. Each non-genesis block is based on a
-    notarized proposal.
+    notarized proposal, and in practice consists of the proposer's signature
+    over the notarized proposal.
+
+    Honest proposers must only ever sign at most one valid proposal for the
+    given epoch in which they are a proposer.
 
     BFT blocks are taken to be notarized, and therefore valid, by definition.
     """
 
     def __init__(self, proposal):
+        """Constructs a `PermissionedBFTBlock` for the given proposal."""
         super().__init__(proposal.n, proposal.t)
 
         proposal.assert_notarized()
         self.proposal = proposal
+        self.parent = proposal.parent
+
+    def last_final(self):
+        """
+        Returns the last final block in this block's ancestor chain.
+        This should be overridden by subclasses; the default implementation
+        will (inefficiently) just return the genesis block.
+        """
+        return self.parent.last_final()
 
 
 class PermissionedBFTProposal(PermissionedBFTBase):
@@ -112,7 +133,9 @@ import unittest
 class TestPermissionedBFT(unittest.TestCase):
     def test_basic(self):
         # Construct the genesis block.
-        current = PermissionedBFTBase(5, 2)
+        genesis = PermissionedBFTBase(5, 2)
+        current = genesis
+        self.assertEqual(current.last_final(), genesis)
 
         for i in range(2):
             proposal = PermissionedBFTProposal(current)
@@ -134,6 +157,7 @@ class TestPermissionedBFT(unittest.TestCase):
             self.assertTrue(proposal.is_notarized())
 
             current = PermissionedBFTBlock(proposal)
+            self.assertEqual(current.last_final(), genesis)
 
     def test_assertions(self):
         genesis = PermissionedBFTBase(5, 2)
