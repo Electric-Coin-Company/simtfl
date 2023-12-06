@@ -1,4 +1,4 @@
-name: flake8
+name: lints
 
 on: pull_request
 
@@ -16,8 +16,15 @@ jobs:
       - name: Install poetry
         run: pip install --user poetry
 
+      - name: Run poetry check
+        run: poetry check
+
       - name: Install dependencies
         run: poetry install --no-root
 
       - name: Run flake8
         run: poetry run flake8
+
+      - name: Run pyanalyze
+        # `poetry run pyanalyze .` doesn't work in CI for some reason.
+        run: poetry run python -m pyanalyze .

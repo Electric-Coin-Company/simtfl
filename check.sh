@@ -3,6 +3,9 @@
 set -eu
 cd -P -- "$(dirname -- "$(command -v -- "$0")")"
 
+echo Running poetry check...
+poetry check
+
 echo Running flake8...
 poetry run flake8
 
