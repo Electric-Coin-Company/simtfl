@@ -2,11 +2,15 @@
 An adapted-Streamlet node.
 """
 
+
+from __future__ import annotations
+
 from ...node import SequentialNode
-from ...message import PayloadMessage
-from ...util import skip
+from ...message import Message, PayloadMessage
+from ...util import skip, ProcessEffect
 
 from . import StreamletGenesis, StreamletBlock, StreamletProposal
+
 
 class Echo(PayloadMessage):
     """
@@ -17,18 +21,20 @@ class Echo(PayloadMessage):
 
 
 class StreamletNode(SequentialNode):
-    """A Streamlet node."""
+    """
+    A Streamlet node.
+    """
 
-    def __init__(self, genesis):
+    def __init__(self, genesis: StreamletGenesis):
         """
         Constructs a Streamlet node with parameters taken from the given `genesis`
         block (an instance of `StreamletGenesis`).
         """
-        assert isinstance(genesis, StreamletGenesis)
+        assert genesis.epoch == 0
         self.genesis = genesis
-        self.voted_epoch = -1
+        self.voted_epoch = genesis.epoch
 
-    def handle(self, sender, message):
+    def handle(self, sender: int, message: Message) -> ProcessEffect:
         """
         (process) Message handler for a Streamlet node:
         * `Echo` messages are unwrapped and treated like the original message.
@@ -51,14 +57,17 @@ class StreamletNode(SequentialNode):
         else:
             yield from super().handle(sender, message)
 
-    def handle_proposal(self, proposal):
+    def handle_proposal(self, proposal: StreamletProposal) -> ProcessEffect:
         """
-        (process) If we already voted in the epoch specified by the same proposal, ignore it.
+        (process) If we already voted in the epoch specified by the proposal or a
+        later epoch, ignore this proposal.
         """
-        assert proposal.epoch >= 0
         if proposal.epoch <= self.voted_epoch:
             self.log("handle",
                      f"received proposal for epoch {proposal.epoch} but we already voted in epoch {self.voted_epoch}")
             return skip()
 
         return skip()
+
+    def handle_block(self, block: StreamletBlock) -> ProcessEffect:
+        raise NotImplementedError

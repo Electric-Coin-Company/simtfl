@@ -6,6 +6,10 @@ An implementation of adapted-Streamlet ([CS2020] as modified in [Crosslink]).
 """
 
 
+from __future__ import annotations
+from typing import Optional
+from collections.abc import Sequence
+
 from .. import PermissionedBFTBase, PermissionedBFTBlock, PermissionedBFTProposal, \
     two_thirds_threshold
 
@@ -13,46 +17,51 @@ from .. import PermissionedBFTBase, PermissionedBFTBlock, PermissionedBFTProposa
 class StreamletProposal(PermissionedBFTProposal):
     """An adapted-Streamlet proposal."""
 
-    def __init__(self, parent, epoch):
+    def __init__(self, parent: StreamletBlock | StreamletGenesis, epoch: int):
         """
         Constructs a `StreamletProposal` with the given parent `StreamletBlock`,
         for the given `epoch`. The parameters are determined by the parent block.
+        A proposal must be for an epoch after its parent's epoch.
         """
-        assert isinstance(parent, StreamletBlock) or isinstance(parent, StreamletGenesis)
         super().__init__(parent)
+        assert epoch > parent.epoch
         self.epoch = epoch
+        """The epoch of this proposal."""
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "StreamletProposal(parent=%r, epoch=%r)" % (self.parent, self.epoch)
 
 
 class StreamletGenesis(PermissionedBFTBase):
     """An adapted-Streamlet genesis block."""
 
-    def __init__(self, n):
-        """Constructs a genesis block for adapted-Streamlet with `n` nodes."""
+    def __init__(self, n: int):
+        """
+        Constructs a genesis block for adapted-Streamlet with `n` nodes.
+        """
         super().__init__(n, two_thirds_threshold(n))
-        self.epoch = None
+        self.epoch = 0
+        """The genesis block has epoch 0."""
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "StreamletGenesis(n=%r)" % (self.n,)
 
 
 class StreamletBlock(PermissionedBFTBlock):
     """
-    An adapted-Streamlet block. Each non-genesis Streamlet block is based on a
-    notarized `StreamletProposal`.
+    An adapted-Streamlet block. Each non-genesis Streamlet block is
+    based on a notarized `StreamletProposal`.
 
-    `StreamletBlock`s are taken to be notarized, and therefore valid, by definition.
+    `StreamletBlock`s are taken to be notarized by definition.
+    All validity conditions are enforced in the contructor.
     """
 
-    def __init__(self, proposal):
+    def __init__(self, proposal: StreamletProposal):
         """Constructs a `StreamletBlock` for the given proposal."""
-        assert isinstance(proposal, StreamletProposal)
         super().__init__(proposal)
         self.epoch = proposal.epoch
 
-    def last_final(self):
+    def last_final(self) -> StreamletBlock | StreamletGenesis:
         """
         Returns the last final block in this block's ancestor chain.
         In Streamlet this is the middle block of the last group of three
@@ -72,7 +81,7 @@ class StreamletBlock(PermissionedBFTBlock):
                 return middle
             (first, middle, last) = (first.parent, first, middle)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "StreamletBlock(proposal=%r)" % (self.proposal,)
 
 
@@ -81,7 +90,7 @@ from itertools import count
 
 
 class TestStreamlet(unittest.TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         """
         Very simple example.
 
@@ -89,7 +98,7 @@ class TestStreamlet(unittest.TestCase):
         """
         self._test_last_final([0, 1, 2], [0, 0, 2])
 
-    def test_figure_1(self):
+    def test_figure_1(self) -> None:
         """
         Figure 1: Streamlet finalization example (without the invalid 'X' proposal).
 
@@ -109,7 +118,7 @@ class TestStreamlet(unittest.TestCase):
         """
         self._test_last_final([0, 0, 1, None, 2, 5, 6], [0, 0, 0, 0, 0, 0, 6])
 
-    def test_complex(self):
+    def test_complex(self) -> None:
         """
         Safety Violation: due to three simultaneous properties:
 
@@ -123,7 +132,7 @@ class TestStreamlet(unittest.TestCase):
         """
         self._test_last_final([0, 0, 1, None, 2, 5, 6, 3, 8, 9], [0, 0, 0, 0, 0, 0, 6, 0, 0, 9])
 
-    def _test_last_final(self, parent_map, final_map):
+    def _test_last_final(self, parent_map: Sequence[Optional[int]], final_map: Sequence[int]) -> None:
         """
         This test constructs a tree of proposals with structure determined by
         `parent_map`, and asserts `block.last_final()` matches the structure
@@ -146,7 +155,9 @@ class TestStreamlet(unittest.TestCase):
                 blocks.append(None)
                 continue
 
-            proposal = StreamletProposal(blocks[parent_epoch], epoch)
+            parent = blocks[parent_epoch]
+            assert parent is not None
+            proposal = StreamletProposal(parent, epoch)
             proposal.assert_valid()
             self.assertTrue(proposal.is_valid())
             self.assertFalse(proposal.is_notarized())

@@ -27,7 +27,7 @@ Note the caveats: *experimental*, *simulator*, *research*, *potential*.
 
 Design documentation is under the `doc/` directory:
 
-* [Programming patterns for use of simpy](doc/patterns.md).
+* [Programming patterns for use of simpy and type annotations](doc/patterns.md).
 
 You can also generate API documentation by running `./gendoc.sh`. This assumes
 that you have run `poetry install` as shown above. The starting point for the

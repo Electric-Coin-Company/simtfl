@@ -11,7 +11,10 @@ protocols — but that's okay; it's a prototype.
 """
 
 
-def two_thirds_threshold(n):
+from __future__ import annotations
+
+
+def two_thirds_threshold(n: int) -> int:
     """
     Calculate the notarization threshold used in most permissioned BFT protocols:
     `ceiling(n * 2/3)`.
@@ -26,7 +29,7 @@ class PermissionedBFTBase:
 
     It is also used as a base class for other BFT block and proposal classes.
     """
-    def __init__(self, n, t):
+    def __init__(self, n: int, t: int):
         """
         Constructs a genesis block for a permissioned BFT protocol with
         `n` nodes, of which at least `t` must sign each proposal.
@@ -35,7 +38,7 @@ class PermissionedBFTBase:
         self.t = t
         self.parent = None
 
-    def last_final(self):
+    def last_final(self) -> PermissionedBFTBase:
         """
         Returns the last final block in this block's ancestor chain.
         For the genesis block, this is itself.
@@ -55,7 +58,7 @@ class PermissionedBFTBlock(PermissionedBFTBase):
     BFT blocks are taken to be notarized, and therefore valid, by definition.
     """
 
-    def __init__(self, proposal):
+    def __init__(self, proposal: PermissionedBFTProposal):
         """Constructs a `PermissionedBFTBlock` for the given proposal."""
         super().__init__(proposal.n, proposal.t)
 
@@ -69,13 +72,13 @@ class PermissionedBFTBlock(PermissionedBFTBase):
         This should be overridden by subclasses; the default implementation
         will (inefficiently) just return the genesis block.
         """
-        return self.parent.last_final()
+        return self if self.parent is None else self.parent.last_final()
 
 
 class PermissionedBFTProposal(PermissionedBFTBase):
     """A proposal for a BFT protocol."""
 
-    def __init__(self, parent):
+    def __init__(self, parent: PermissionedBFTBase):
         """
         Constructs a `PermissionedBFTProposal` with the given parent
         `PermissionedBFTBlock`. The parameters are determined by the parent
@@ -85,14 +88,14 @@ class PermissionedBFTProposal(PermissionedBFTBase):
         self.parent = parent
         self.signers = set()
 
-    def assert_valid(self):
+    def assert_valid(self) -> None:
         """
         Assert that this proposal is valid. This does not assert that it is
         notarized. This should be overridden by subclasses.
         """
         pass
 
-    def is_valid(self):
+    def is_valid(self) -> bool:
         """Is this proposal valid?"""
         try:
             self.assert_valid()
@@ -100,7 +103,7 @@ class PermissionedBFTProposal(PermissionedBFTBase):
         except AssertionError:
             return False
 
-    def assert_notarized(self):
+    def assert_notarized(self) -> None:
         """
         Assert that this proposal is notarized. A `PermissionedBFTProposal`
         is notarized iff it is valid and has at least the threshold number of
@@ -109,7 +112,7 @@ class PermissionedBFTProposal(PermissionedBFTBase):
         self.assert_valid()
         assert len(self.signers) >= self.t
 
-    def is_notarized(self):
+    def is_notarized(self) -> bool:
         """Is this proposal notarized?"""
         try:
             self.assert_notarized()
@@ -117,7 +120,7 @@ class PermissionedBFTProposal(PermissionedBFTBase):
         except AssertionError:
             return False
 
-    def add_signature(self, index):
+    def add_signature(self, index: int) -> None:
         """
         Record that the node with the given `index` has signed this proposal.
         If the same node signs more than once, the subsequent signatures are
@@ -127,17 +130,19 @@ class PermissionedBFTProposal(PermissionedBFTBase):
         assert len(self.signers) <= self.n
 
 
+__all__ = ['two_thirds_threshold', 'PermissionedBFTBase', 'PermissionedBFTBlock', 'PermissionedBFTProposal']
+
 import unittest
 
 
 class TestPermissionedBFT(unittest.TestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         # Construct the genesis block.
         genesis = PermissionedBFTBase(5, 2)
         current = genesis
         self.assertEqual(current.last_final(), genesis)
 
-        for i in range(2):
+        for _ in range(2):
             proposal = PermissionedBFTProposal(current)
             proposal.assert_valid()
             self.assertTrue(proposal.is_valid())
@@ -159,7 +164,7 @@ class TestPermissionedBFT(unittest.TestCase):
             current = PermissionedBFTBlock(proposal)
             self.assertEqual(current.last_final(), genesis)
 
-    def test_assertions(self):
+    def test_assertions(self) -> None:
         genesis = PermissionedBFTBase(5, 2)
         proposal = PermissionedBFTProposal(genesis)
         self.assertRaises(AssertionError, PermissionedBFTBlock, proposal)

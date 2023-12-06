@@ -2,12 +2,16 @@
 A simple demo of message passing.
 """
 
+
+from __future__ import annotations
+
 from simpy import Environment
 
 from .logging import PrintLogger
-from .message import PayloadMessage
+from .message import Message, PayloadMessage
 from .network import Network
 from .node import PassiveNode, SequentialNode
+from .util import ProcessEffect
 
 
 class Ping(PayloadMessage):
@@ -28,7 +32,7 @@ class PingNode(PassiveNode):
     """
     A node that sends pings.
     """
-    def run(self):
+    def run(self) -> ProcessEffect:
         """
         (process) Sends two Ping messages to every node.
         """
@@ -43,7 +47,7 @@ class PongNode(SequentialNode):
     """
     A node that responds to pings sequentially.
     """
-    def handle(self, sender, message):
+    def handle(self, sender: int, message: Message) -> ProcessEffect:
         """
         (process) Handles a Ping message by sending back a Pong message with the
         same payload.
@@ -55,12 +59,12 @@ class PongNode(SequentialNode):
             yield from super().handle(sender, message)
 
 
-def run():
+def run() -> None:
     """
     Runs the demo.
     """
     network = Network(Environment(), delay=4, logger=PrintLogger())
-    for i in range(10):
+    for _ in range(10):
         network.add_node(PongNode())
 
     network.add_node(PingNode())
