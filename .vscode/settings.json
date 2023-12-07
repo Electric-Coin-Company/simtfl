@@ -1,0 +1,14 @@
+{
+    "python.testing.unittestArgs": [
+        "-s",
+        "./simtfl",
+        "-t",
+        ".",
+        "-p",
+        "[a-z]*.py",
+        "--verbose",
+        "--buffer"
+    ],
+    "python.testing.pytestEnabled": false,
+    "python.testing.unittestEnabled": true
+}

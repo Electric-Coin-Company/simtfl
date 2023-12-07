@@ -2,12 +2,19 @@
 Base classes for node implementations.
 """
 
-from collections import deque
 
-from .util import skip
+from __future__ import annotations
+from numbers import Number
+
+from simpy import Environment
+from simpy.events import Event
+
+from .message import Message
+from .network import Network, Node
+from .util import skip, ProcessEffect
 
 
-class PassiveNode:
+class PassiveNode(Node):
     """
     A node that processes messages concurrently. By default it sends no
     messages and does nothing with received messages. This class is
@@ -20,33 +27,8 @@ class PassiveNode:
     Note that the simulation is deterministic regardless of which option
     is selected.
     """
-    def initialize(self, ident, env, network):
-        """
-        Initializes a `PassiveNode` with the given ident, `simpy.Environment`,
-        and `Network`. Nodes are initialized when they are added to a `Network`.
-        """
-        self.ident = ident
-        self.env = env
-        self.network = network
 
-    def __str__(self):
-        return f"{self.__class__.__name__}"
-
-    def send(self, target, message, delay=None):
-        """
-        (process) This method can be overridden to intercept messages being sent
-        by this node. The implementation in this class calls `self.network.send`.
-        """
-        return self.network.send(self.ident, target, message, delay=delay)
-
-    def receive(self, sender, message):
-        """
-        (process) This method can be overridden to intercept messages being received
-        by this node. The implementation in this class calls `self.handle`.
-        """
-        return self.handle(sender, message)
-
-    def handle(self, sender, message):
+    def handle(self, sender: int, message: Message) -> ProcessEffect:
         """
         (process) Handles a message by doing nothing. Note that the handling of
         each message, and the `run` method, are in separate simpy processes. That
@@ -55,28 +37,30 @@ class PassiveNode:
         """
         return skip()
 
-    def run(self):
+    def run(self) -> ProcessEffect:
         """
         (process) Runs by doing nothing.
         """
         return skip()
 
 
-class SequentialNode(PassiveNode):
+class SequentialNode(Node):
     """
     A node that processes messages sequentially. By default it sends no
     messages and does nothing with received messages. This class is
     intended to be subclassed.
     """
-    def initialize(self, ident, env, network):
+
+    def initialize(self, ident: int, env: Environment, network: Network):
         """
-        Initializes a `SequentialNode` with the given `simpy.Environment` and `Network`.
+        Initializes a `SequentialNode` with the given ident, `simpy.Environment`,
+        and `Network`. Nodes are initialized when they are added to a `Network`.
         """
         super().initialize(ident, env, network)
-        self._mailbox = deque()
-        self._wakeup = env.event()
+        self._mailbox: deque[tuple[int, Message]] = deque()
+        self._wakeup = Event(self.env)
 
-    def receive(self, sender, message):
+    def receive(self, sender: int, message: Message) -> ProcessEffect:
         """
         (process) Add incoming messages to the mailbox.
         """
@@ -87,17 +71,15 @@ class SequentialNode(PassiveNode):
             pass
         return skip()
 
-    def handle(self, sender, message):
+    def handle(self, sender: int, message: Message) -> ProcessEffect:
         """
         (process) Handles a message by doing nothing. Messages are handled
         sequentially; that is, handling of the next message will be blocked
         on this process.
         """
-        # This is the same implementation as `PassiveNode`, but the documentation
-        # is different.
         return skip()
 
-    def run(self):
+    def run(self) -> ProcessEffect:
         """
         (process) Repeatedly handle incoming messages.
         If a subclass needs to perform tasks in parallel with message handling,
@@ -107,84 +89,92 @@ class SequentialNode(PassiveNode):
         while True:
             while len(self._mailbox) > 0:
                 (sender, message) = self._mailbox.popleft()
-                print(f"T{self.env.now:5d}: handling  {sender:2d} -> {self.ident:2d}: {message}")
+                self.log("handle", f"from {sender:2d}: {message}")
                 yield from self.handle(sender, message)
 
             # This naive implementation is fine because we have no actual
             # concurrency.
-            self._wakeup = self.env.event()
+            self._wakeup = Event(self.env)
             yield self._wakeup
 
 
 __all__ = ['PassiveNode', 'SequentialNode']
 
-from simpy import Environment
 import unittest
+from collections import deque
+from simpy.events import Timeout
 
+from .logging import PrintLogger
 from .message import PayloadMessage
-from .network import Network
 
 
 class PassiveReceiverTestNode(PassiveNode):
     def __init__(self):
         super().__init__()
-        self.handled = deque()
+        self.handled: deque[tuple[int, Message, Number]] = deque()
 
-    def handle(self, sender, message):
+    def handle(self, sender: int, message: Message) -> ProcessEffect:
         # Record when each message is handled.
         self.handled.append((sender, message, self.env.now))
         # The handler takes 3 time units.
-        yield self.env.timeout(3)
+        yield Timeout(self.env, 3)
 
 
 class SequentialReceiverTestNode(SequentialNode):
     def __init__(self):
         super().__init__()
-        self.handled = deque()
+        self.handled: deque[tuple[int, Message, Number]] = deque()
 
-    def handle(self, sender, message):
+    def handle(self, sender: int, message: Message) -> ProcessEffect:
         # Record when each message is handled.
         self.handled.append((sender, message, self.env.now))
         # The handler takes 3 time units.
-        yield self.env.timeout(3)
+        yield Timeout(self.env, 3)
 
 
 class SenderTestNode(PassiveNode):
-    def run(self):
+    def run(self) -> ProcessEffect:
         # We send messages at times 0, 1, 2. Since the message
         # propagation delay is 1 (the default), they will be
         # received at times 1, 2, 3.
         for i in range(3):
             yield from self.send(0, PayloadMessage(i))
-            yield self.env.timeout(1)
+            yield Timeout(self.env, 1)
 
         # Test overriding the propagation delay. This message
-        # is sent at time 3 and received at time 11.
-        yield from self.send(0, PayloadMessage(3), delay=8)
+        # is sent at time 3 and received at time 14.
+        yield from self.send(0, PayloadMessage(3), delay=11)
+        yield Timeout(self.env, 1)
+
+        # This message is broadcast at time 4 and received at time 5.
+        yield from self.broadcast(PayloadMessage(4))
 
 
 class TestFramework(unittest.TestCase):
-    def _test_node(self, receiver_node, expected):
-        network = Network(Environment())
+    def _test_node(self,
+                   receiver_node: Node,
+                   expected: list[tuple[int, Message, Number]]) -> None:
+        network = Network(Environment(), logger=PrintLogger())
         network.add_node(receiver_node)
         network.add_node(SenderTestNode())
         network.run_all()
 
         self.assertEqual(list(network.node(0).handled), expected)
 
-    def test_passive_node(self):
-        # A PassiveNode subclass does not block on handling of
+    def test_passive_node(self) -> None:
+        # A `PassiveNode` subclass does not block on handling of
         # previous messages, so it handles each message immediately
         # when it is received.
         self._test_node(PassiveReceiverTestNode(), [
             (1, PayloadMessage(0), 1),
             (1, PayloadMessage(1), 2),
             (1, PayloadMessage(2), 3),
-            (1, PayloadMessage(3), 11),
+            (1, PayloadMessage(4), 5),
+            (1, PayloadMessage(3), 14),
         ])
 
-    def test_sequential_node(self):
-        # A SequentialNode subclass *does* block on handling of
+    def test_sequential_node(self) -> None:
+        # A `SequentialNode` subclass *does* block on handling of
         # previous messages. It handles the messages as soon as
         # possible after they are received subject to that blocking,
         # so they will be handled at intervals of 3 time units.
@@ -192,5 +182,6 @@ class TestFramework(unittest.TestCase):
             (1, PayloadMessage(0), 1),
             (1, PayloadMessage(1), 4),
             (1, PayloadMessage(2), 7),
-            (1, PayloadMessage(3), 11),
+            (1, PayloadMessage(4), 10),
+            (1, PayloadMessage(3), 14),
         ])
