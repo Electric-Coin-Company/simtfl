@@ -9,7 +9,7 @@ from ...node import SequentialNode
 from ...message import Message, PayloadMessage
 from ...util import skip, ProcessEffect
 
-from . import StreamletGenesis, StreamletBlock, StreamletProposal
+from .chain import StreamletGenesis, StreamletBlock, StreamletProposal
 
 
 class Echo(PayloadMessage):
