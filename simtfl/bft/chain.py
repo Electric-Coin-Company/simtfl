@@ -26,16 +26,33 @@ class PermissionedBFTBase:
         Constructs a genesis block for a permissioned BFT protocol with
         `n` nodes, of which at least `t` must sign each proposal.
         """
-        self.n = n
-        self.t = t
-        self.parent = None
 
-    def last_final(self) -> PermissionedBFTBase:
-        """
-        Returns the last final block in this block's ancestor chain.
-        For the genesis block, this is itself.
-        """
-        return self
+        self.n = n
+        """The number of voters."""
+
+        self.t = t
+        """The threshold of votes required for notarization."""
+
+        self.parent = None
+        """The genesis block has no parent (represented as `None`)."""
+
+        self.length = 1
+        """The genesis chain length is 1."""
+
+        self.last_final = self
+        """The last final block for the genesis block is itself."""
+
+    def preceq(self, other: PermissionedBFTBase):
+        """Return True if this block is an ancestor of `other`."""
+        if self.length > other.length:
+            return False  # optimization
+        return self == other or (other.parent is not None and self.preceq(other.parent))
+
+    def __eq__(self, other) -> bool:
+        return other.parent is None and (self.n, self.t) == (other.n, other.t)
+
+    def __hash__(self) -> int:
+        return hash((self.n, self.t))
 
 
 class PermissionedBFTBlock(PermissionedBFTBase):
@@ -56,15 +73,24 @@ class PermissionedBFTBlock(PermissionedBFTBase):
 
         proposal.assert_notarized()
         self.proposal = proposal
-        self.parent = proposal.parent
+        """The proposal for this block."""
 
-    def last_final(self):
-        """
-        Returns the last final block in this block's ancestor chain.
-        This should be overridden by subclasses; the default implementation
-        will (inefficiently) just return the genesis block.
-        """
-        return self if self.parent is None else self.parent.last_final()
+        assert proposal.parent is not None
+        self.parent = proposal.parent
+        """The parent of this block."""
+
+        self.length = proposal.length
+        """The chain length of this block."""
+
+        self.last_final = self.parent.last_final
+        """The last final block for this block."""
+
+    def __eq__(self, other) -> bool:
+        return (isinstance(other, PermissionedBFTBlock) and
+                (self.n, self.t, self.proposal) == (other.n, other.t, other.proposal))
+
+    def __hash__(self) -> int:
+        return hash((self.n, self.t, self.proposal))
 
 
 class PermissionedBFTProposal(PermissionedBFTBase):
@@ -77,8 +103,22 @@ class PermissionedBFTProposal(PermissionedBFTBase):
         block.
         """
         super().__init__(parent.n, parent.t)
+
         self.parent = parent
-        self.signers = set()
+        """The parent block of this proposal."""
+
+        self.length = parent.length + 1
+        """The chain length of this proposal is one greater than its parent block."""
+
+        self.votes = set()
+        """The set of voter indices that have voted for this proposal."""
+
+    def __eq__(self, other):
+        """Two proposals are equal iff they are the same object."""
+        return self is other
+
+    def __hash__(self) -> int:
+        return id(self)
 
     def assert_valid(self) -> None:
         """
@@ -102,7 +142,7 @@ class PermissionedBFTProposal(PermissionedBFTBase):
         signatures.
         """
         self.assert_valid()
-        assert len(self.signers) >= self.t
+        assert len(self.votes) >= self.t
 
     def is_notarized(self) -> bool:
         """Is this proposal notarized?"""
@@ -112,14 +152,13 @@ class PermissionedBFTProposal(PermissionedBFTBase):
         except AssertionError:
             return False
 
-    def add_signature(self, index: int) -> None:
+    def add_vote(self, index: int) -> None:
         """
-        Record that the node with the given `index` has signed this proposal.
-        If the same node signs more than once, the subsequent signatures are
-        ignored.
+        Record that the node with the given `index` has voted for this proposal.
+        Calls that add the same vote more than once are ignored.
         """
-        self.signers.add(index)
-        assert len(self.signers) <= self.n
+        self.votes.add(index)
+        assert len(self.votes) <= self.n
 
 
 __all__ = ['two_thirds_threshold', 'PermissionedBFTBase', 'PermissionedBFTBlock', 'PermissionedBFTProposal']
@@ -132,35 +171,39 @@ class TestPermissionedBFT(unittest.TestCase):
         # Construct the genesis block.
         genesis = PermissionedBFTBase(5, 2)
         current = genesis
-        self.assertEqual(current.last_final(), genesis)
+        self.assertEqual(current.last_final, genesis)
 
         for _ in range(2):
-            proposal = PermissionedBFTProposal(current)
+            parent = current
+            proposal = PermissionedBFTProposal(parent)
             proposal.assert_valid()
             self.assertTrue(proposal.is_valid())
             self.assertFalse(proposal.is_notarized())
 
-            # not enough signatures
-            proposal.add_signature(0)
+            # not enough votes
+            proposal.add_vote(0)
             self.assertFalse(proposal.is_notarized())
 
-            # same index, so we still only have one signature
-            proposal.add_signature(0)
+            # same index, so we still only have one vote
+            proposal.add_vote(0)
             self.assertFalse(proposal.is_notarized())
 
-            # different index, now we have two signatures as required
-            proposal.add_signature(1)
+            # different index, now we have two votes as required
+            proposal.add_vote(1)
             proposal.assert_notarized()
             self.assertTrue(proposal.is_notarized())
 
             current = PermissionedBFTBlock(proposal)
-            self.assertEqual(current.last_final(), genesis)
+            self.assertTrue(parent.preceq(current))
+            self.assertFalse(current.preceq(parent))
+            self.assertNotEqual(current, parent)
+            self.assertEqual(current.last_final, genesis)
 
     def test_assertions(self) -> None:
         genesis = PermissionedBFTBase(5, 2)
         proposal = PermissionedBFTProposal(genesis)
         self.assertRaises(AssertionError, PermissionedBFTBlock, proposal)
-        proposal.add_signature(0)
+        proposal.add_vote(0)
         self.assertRaises(AssertionError, PermissionedBFTBlock, proposal)
-        proposal.add_signature(1)
+        proposal.add_vote(1)
         _ = PermissionedBFTBlock(proposal)

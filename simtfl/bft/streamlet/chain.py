@@ -27,7 +27,7 @@ class StreamletProposal(PermissionedBFTProposal):
         """The epoch of this proposal."""
 
     def __str__(self) -> str:
-        return "StreamletProposal(parent=%s, epoch=%s)" % (self.parent, self.epoch)
+        return f"StreamletProposal(parent={self.parent}, epoch={self.epoch}, length={self.length})"
 
 
 class StreamletGenesis(PermissionedBFTBase):
@@ -49,7 +49,7 @@ class StreamletGenesis(PermissionedBFTBase):
         """The last final block of the genesis block is itself."""
 
     def __str__(self) -> str:
-        return "StreamletGenesis(n=%s)" % (self.n,)
+        return f"StreamletGenesis(n={self.n})"
 
     def proposer_for_epoch(self, epoch: int):
         assert epoch > 0
@@ -97,4 +97,4 @@ class StreamletBlock(PermissionedBFTBlock):
             (first, middle, last) = (first.parent, first, middle)
 
     def __str__(self) -> str:
-        return "StreamletBlock(proposal=%s)" % (self.proposal,)
+        return f"StreamletBlock(proposal={self.proposal})"

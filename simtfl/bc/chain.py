@@ -4,7 +4,7 @@ Abstractions for best-chain transactions, contexts, and blocks.
 
 
 from __future__ import annotations
-from typing import Iterable, Optional
+from typing import Iterable, Optional, TypeAlias
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -245,13 +245,13 @@ class BCBlock:
 class BCProtocol:
     """A best-chain protocol."""
 
-    Transaction: type[object] = BCTransaction
+    Transaction: TypeAlias = BCTransaction
     """The type of transactions for this protocol."""
 
-    Context: type[object] = BCContext
+    Context: TypeAlias = BCContext
     """The type of contexts for this protocol."""
 
-    Block: type[object] = BCBlock
+    Block: TypeAlias = BCBlock
     """The type of blocks for this protocol."""
 
 
