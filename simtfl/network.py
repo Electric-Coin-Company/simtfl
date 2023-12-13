@@ -30,7 +30,7 @@ class Node:
         self.env = env
         self.network = network
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}"
 
     def log(self, event: str, detail: str):
@@ -47,13 +47,13 @@ class Node:
         """
         return self.network.send(self.ident, target, message, delay=delay)
 
-    def broadcast(self, message: Message, delay: Optional[Number]=None) -> ProcessEffect:
+    def broadcast(self, message: Message, include_self: bool, delay: Optional[Number]=None) -> ProcessEffect:
         """
         (process) This method can be overridden to intercept messages being broadcast
         by this node. The implementation in this class calls `self.network.broadcast`
         with this node as the sender.
         """
-        return self.network.broadcast(self.ident, message, delay=delay)
+        return self.network.broadcast(self.ident, message, include_self, delay=delay)
 
     def receive(self, sender: int, message: Message) -> ProcessEffect:
         """
@@ -86,8 +86,14 @@ class Network:
         a set of initial nodes, message propagation delay, and logger.
         """
         self.env = env
+        """The `simpy.Environment`."""
+
         self.nodes = nodes or []
+        """The nodes in this network."""
+
         self.delay = delay
+        """The message propagation delay."""
+
         self._logger = logger
         logger.header()
 
@@ -166,19 +172,21 @@ class Network:
         # TODO: make it take some time on the sending node.
         return skip()
 
-    def broadcast(self, sender: int, message: Message, delay: Optional[Number]=None) -> ProcessEffect:
+    def broadcast(self, sender: int, message: Message, include_self: bool,
+                  delay: Optional[Number]=None) -> ProcessEffect:
         """
-        (process) Broadcasts a message to every other node. The message
-        propagation delay is normally given by `self.delay`, but can be
-        overridden by the `delay` parameter.
+        (process) Broadcasts a message to every node (including ourself only when
+        `include_self` is set). The message propagation delay is normally given by
+        `self.delay`, but can be overridden by the `delay` parameter.
         """
         if delay is None:
             delay = self.delay
-        self.log(sender, "broadcast", f"to    * with delay {delay:2d}: {message}")
+        c = "+" if include_self else "-"
+        self.log(sender, "broadcast", f"to   {c}* with delay {delay:2d}: {message}")
 
         # Run `convey` in a new process for each node.
         for target in range(self.num_nodes()):
-            if target != sender:
+            if include_self or target != sender:
                 Process(self.env, self.convey(delay, sender, target, message))
 
         # Broadcasting is currently instantaneous.

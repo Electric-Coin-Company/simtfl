@@ -22,3 +22,6 @@ class PayloadMessage(Message):
     """
     payload: Any
     """The payload."""
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}({self.payload})"

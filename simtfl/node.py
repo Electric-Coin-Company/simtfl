@@ -89,7 +89,7 @@ class SequentialNode(Node):
         while True:
             while len(self._mailbox) > 0:
                 (sender, message) = self._mailbox.popleft()
-                self.log("handle", f"from {sender:2d}: {message}")
+                self.log("handle", f"from {sender:2d}:               {message}")
                 yield from self.handle(sender, message)
 
             # This naive implementation is fine because we have no actual
@@ -147,7 +147,7 @@ class SenderTestNode(PassiveNode):
         yield Timeout(self.env, 1)
 
         # This message is broadcast at time 4 and received at time 5.
-        yield from self.broadcast(PayloadMessage(4))
+        yield from self.broadcast(PayloadMessage(4), False)
 
 
 class TestFramework(unittest.TestCase):
